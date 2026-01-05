@@ -60,6 +60,8 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: example
