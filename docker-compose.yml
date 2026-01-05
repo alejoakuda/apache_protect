@@ -1,5 +1,28 @@
 services:
 
+  akuda-sentinel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: akuda-sentinel
+    restart: always
+    hostname: akuda-sentinel
+    networks:
+      akudasentinel_default:
+        ipv4_address: 172.20.0.5
+      multi-node_default:
+    env_file:
+      - .env.frontend
+      - .env.backend
+    volumes:
+      - frontend_akuda:/var/www/sentinel
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
   akuda-proxy:
     build:
       context: .
@@ -24,29 +47,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-  akuda-sentinel:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: akuda-sentinel
-    restart: always
-    hostname: akuda-sentinel
-    networks:
-      akudasentinel_default:
-        ipv4_address: 172.20.0.5
-      multi-node_default:
-    env_file:
-      - .env.frontend
-      - .env.backend
-    volumes:
-      - frontend_akuda:/var/www/sentinel
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
 
   mongodb:
     image: mongo:6.0
