@@ -439,12 +439,11 @@ if ! is_step_completed "PROXY_CONFIGURED"; then
         echo -n "."
         sleep 3
     done
-    echo "" # Salto de línea tras los puntos de espera
+    echo ""
 
     print_info "Configurando identidad del servidor y módulos..."
 
-    # 2. Configurar ServerName Global
-    # Usamos la variable SERVER_NAME que capturamos en el Paso 4
+    # Usa la variable SERVER_NAME capturada en el Paso 4
     docker exec akuda_apache_proxy sh -c "echo 'ServerName ${SERVER_NAME:-localhost}' > /etc/apache2/conf-available/servername.conf"
     docker exec akuda_apache_proxy a2enconf servername
 
@@ -454,7 +453,16 @@ if ! is_step_completed "PROXY_CONFIGURED"; then
     docker exec akuda_apache_proxy a2dissite 000-default
     docker exec akuda_apache_proxy a2ensite sentinel
 
-    docker exec akuda_apache_proxy service apache2 reload
+    # Validación de configuración
+    if docker exec akuda_apache_proxy apache2ctl configtest; then
+        print_info "Sintaxis de configuración validada. Reiniciando Apache..."
+        docker exec akuda_apache_proxy service apache2 reload
+        print_success "✅ Proxy Apache configurado y activo"
+        save_checkpoint "PROXY_CONFIGURED"
+    else
+        print_error "❌ Error en la configuración de Apache. Revisa los logs del contenedor."
+        exit 1
+    fi
 
     print_success "✅ Proxy Apache configurado con éxito"
     save_checkpoint "PROXY_CONFIGURED"
