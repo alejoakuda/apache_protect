@@ -464,8 +464,6 @@ if ! is_step_completed "PROXY_CONFIGURED"; then
         exit 1
     fi
 
-    print_success "✅ Proxy Apache configurado con éxito"
-    save_checkpoint "PROXY_CONFIGURED"
 fi
 
 echo ""

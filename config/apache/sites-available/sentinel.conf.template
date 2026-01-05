@@ -69,8 +69,8 @@
     ProxyPassReverse /eventosapi/ https://wazuh1.indexer:9200/
 
     # Proxy para el Backend API (Corregido a puerto 4000)
-    ProxyPass /api/ http://localhost:4000/
-    ProxyPassReverse /api/ http://localhost:4000/
+    ProxyPass /api/ http://akuda-sentinel:4000/
+    ProxyPassReverse /api/ http://akuda-sentinel:4000/
 
     # Proxy para el Backend de Reportes
     ProxyPass /reportsapi/ http://reportsbackend:3001/
