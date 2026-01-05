@@ -14,7 +14,7 @@ RUN npm install
 # Copiar todo el código fuente del frontend
 COPY frontend/ ./
 
-# Copiar archivo de entorno para el build (sobrescribe cualquier .env existente)
+# Copiar archivo de entorno para el build
 COPY .env.frontend ./.env
 
 # Verificacion
@@ -66,20 +66,12 @@ COPY --from=frontend-builder /app/frontend/dist /var/www/sentinel
 # Copiar el backend completo
 COPY --from=backend-builder /app/backend /opt/backend
 
-# Crear directorios necesarios
-RUN mkdir -p /var/www/sentinel /home/akudasentinel
-
 # Copiar el script de entrada
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Expone los puertos 80 (HTTP) y 443 (HTTPS)
+# Expone solo el puerto de backend || Para desarrollo añadir -> 3000 5173
 EXPOSE 4000
-# Para desarrollo >> 3000 5173
-
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost/ || exit 1
 
 # Comando de inicio
 CMD ["/entrypoint.sh"]

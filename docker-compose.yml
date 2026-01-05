@@ -5,6 +5,9 @@ services:
       context: .
       dockerfile: ./config/apache/Dockerfile.proxy
     container_name: akuda_apache_proxy
+    depends_on:
+      akuda-sentinel:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       akudasentinel_default:
@@ -32,11 +35,6 @@ services:
     env_file:
       - .env.frontend
       - .env.backend
-#    ports:
-#      - "80:80"
-#      - "443:443"
-#      - "3000:3000"
-#      - "5173:5173"
     volumes:
       - ./config/apache/sites-available:/etc/apache2/sites-available
       - ./config/apache/ssl/certs:/etc/apache2/ssl/certs
@@ -44,8 +42,13 @@ services:
       akudasentinel_default:
         ipv4_address: 172.20.0.5
       multi-node_default:
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
-      
   mongodb:
     image: mongo:6.0
     container_name: mongodb
