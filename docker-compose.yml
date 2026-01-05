@@ -16,6 +16,8 @@ services:
       - .env.backend
     volumes:
       - frontend_akuda:/var/www/sentinel
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4000/"]
       interval: 30s
@@ -43,6 +45,8 @@ services:
       - ./config/apache/sites-available:/etc/apache2/sites-available
       - ./config/apache/ssl:/etc/apache2/ssl:ro
       - frontend_akuda:/var/www/sentinel:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s

@@ -65,21 +65,18 @@
     # Proxy para Elasticsearch (Indexer)
 
     <Location /eventosapi/>
-    # 1. Permitir al propio servidor (Docker network)
-       Require ip 172.20.0.0/24
+    # 1. Permitir a la red del propio servidor
+        Require ip 172.20.0.0/24
     
     # Permitir a la red externa si fuera necesario (Wazuh/Indexer)
        #Require ip 172.18.0.0/16 
 
     # Opcional: Tu IP de administrador para pruebas
-    # Require ip TU_IP_PUBLICA
+       #Require ip TU_IP
 
     # Denegar todo lo demás
-       ErrorDocument 403 "404 Not Found" (Ofuscación)
-   </Location>
-
-   ProxyPass /eventosapi/ https://wazuh1.indexer:9200/
-   ProxyPassReverse /eventosapi/ https://wazuh1.indexer:9200/
+        ErrorDocument 403 "404 Not Found" (Ofuscación)
+    </Location>
 
     ProxyPass /eventosapi/ https://wazuh1.indexer:9200/
     ProxyPassReverse /eventosapi/ https://wazuh1.indexer:9200/
