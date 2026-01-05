@@ -27,3 +27,7 @@ while ! nc -z localhost 4000; do
 done
 echo "✅ Backend iniciado correctamente (PID: $BACKEND_PID)"
 
+# ================================
+# 3. Mantener el contenedor vivo
+# ================================
+wait $BACKEND_PID

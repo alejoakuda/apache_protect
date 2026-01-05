@@ -394,40 +394,35 @@ $COMPOSE_CMD build --no-cache
 print_info "Iniciando servicios..."
 $COMPOSE_CMD up -d
 
-# Paso 6: Extracción y Sincronización del Frontend
-if ! is_step_completed "FRONTEND_EXTRACTED"; then
+# Paso 6: Verificación de Sincronización del Frontend
+if ! is_step_completed "FRONTEND_VERIFIED"; then
     echo ""
-    print_info "Sincronizando archivos estáticos del Frontend para el Proxy..."
-    
-    # Definimos la ruta de destino
-    FRONTEND_DEST="config/apache/frontend-sentinel"
-    
-    # Crear el directorio si no existe
-    if [ ! -d "$FRONTEND_DEST" ]; then
-        mkdir -p "$FRONTEND_DEST"
-        print_info "Directorio creado: $FRONTEND_DEST"
-    fi
+    print_info "Verificando disponibilidad del Frontend en el volumen compartido..."
 
-    # Extraer los archivos del contenedor recién levantado
-    print_info "Extrayendo build de producción desde el contenedor..."
-    docker cp akuda-sentinel:/var/www/sentinel/. "$FRONTEND_DEST/"
-    
-    if [ $? -eq 0 ]; then
-        # Ajustar permisos para que el contenedor de Apache pueda leerlos
-        chmod -R 755 "$FRONTEND_DEST"
-        print_success "✅ Frontend sincronizado en: $FRONTEND_DEST"
+    sleep 2 
+
+    # Verificar si existe el index.html en el Proxy
+    if docker exec akuda_apache_proxy [ -f /var/www/sentinel/index.html ]; then
+        print_success "✅ Frontend detectado correctamente por el Proxy"
         
-        # Reiniciar el proxy para asegurar que vea los nuevos archivos
-        print_info "Reiniciando Proxy para aplicar cambios..."
-        $COMPOSE_CMD restart akuda-proxy 2>/dev/null || true
+        # 3. Verificar permisos (Security Check)
+        print_info "Verificando permisos de lectura..."
+        docker exec akuda_apache_proxy ls -la /var/www/sentinel/index.html > /dev/null
         
-        save_checkpoint "FRONTEND_EXTRACTED"
+        save_checkpoint "FRONTEND_VERIFIED"
     else
-        print_error "Error al extraer el frontend. Verifica que el contenedor 'akuda-sentinel' esté corriendo."
+        print_error "❌ El Proxy no puede ver el Frontend en /var/www/sentinel/"
+        print_warning "Revisando si el contenedor de la App tiene los archivos..."
+        
+        if docker exec akuda_sentinel_app [ -f /var/www/sentinel/index.html ]; then
+            print_error "Los archivos existen en la App pero NO en el Proxy. Revisa el volumen en docker-compose.yml"
+        else
+            print_error "Los archivos ni siquiera existen en el contenedor de la App. Revisa el Dockerfile."
+        fi
         exit 1
     fi
 else
-    print_info "Saltando extracción del frontend (ya completado)"
+    print_info "Saltando verificación del frontend (ya completado)"
 fi
 
 # Paso 7: Configuración de Apache

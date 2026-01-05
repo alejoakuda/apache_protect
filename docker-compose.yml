@@ -18,7 +18,7 @@ services:
     volumes:
       - ./config/apache/sites-available:/etc/apache2/sites-available
       - ./config/apache/ssl/certs:/etc/apache2/ssl/certs
-      - ./config/apache/frontend-sentinel:/var/www/sentinel:ro
+      - frontend_akuda:/var/www/sentinel:ro
     healthcheck:
       test: ["CMD", "wget", "-q.O", "-", "http://localhost:80/"]
       interval: 30s
@@ -36,8 +36,7 @@ services:
       - .env.frontend
       - .env.backend
     volumes:
-      - ./config/apache/sites-available:/etc/apache2/sites-available
-      - ./config/apache/ssl/certs:/etc/apache2/ssl/certs
+      - frontend_akuda:/var/www/sentinel
     networks:
       akudasentinel_default:
         ipv4_address: 172.20.0.5
@@ -76,3 +75,4 @@ networks:
 
 volumes:
   mongodb_data:
+  frontend_akuda:
