@@ -440,12 +440,9 @@ if ! is_step_completed "PROXY_CONFIGURED"; then
 
     # Usa la variable SERVER_NAME capturada en el Paso 4
     docker exec akuda_apache_proxy sh -c "echo 'ServerName ${SERVER_NAME:-localhost}' > /etc/apache2/conf-available/servername.conf"
-    docker exec akuda_apache_proxy a2enconf servername
 
-    print_info "Habilitando módulos y configurando sitios..."
+    print_info "Habilitando sitios..."
 
-    docker exec akuda_apache_proxy a2enmod ssl rewrite proxy proxy_http headers
-    docker exec akuda_apache_proxy a2dissite 000-default
     docker exec akuda_apache_proxy a2ensite sentinel
 
     # Validación de configuración
