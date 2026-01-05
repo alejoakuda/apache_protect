@@ -441,6 +441,13 @@ if ! is_step_completed "PROXY_CONFIGURED"; then
     done
     echo "" # Salto de línea tras los puntos de espera
 
+    print_info "Configurando identidad del servidor y módulos..."
+
+    # 2. Configurar ServerName Global
+    # Usamos la variable SERVER_NAME que capturamos en el Paso 4
+    docker exec akuda_apache_proxy sh -c "echo 'ServerName ${SERVER_NAME:-localhost}' > /etc/apache2/conf-available/servername.conf"
+    docker exec akuda_apache_proxy a2enconf servername
+
     print_info "Habilitando módulos y configurando sitios..."
 
     docker exec akuda_apache_proxy a2enmod ssl rewrite proxy proxy_http headers
