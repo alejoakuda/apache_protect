@@ -5,7 +5,7 @@
     ServerName {{SERVER_NAME}}
     ServerAlias {{SERVER_ALIAS}} www.{{SERVER_NAME}}
 
-    # Redirige todo (IP o HTTP) al Dominio oficial en HTTPS
+    # Redirige IP o HTTP al Dominio oficial en HTTPS
     Redirect permanent / https://{{SERVER_NAME}}/
 </VirtualHost>
 
@@ -14,18 +14,16 @@
 # =================================================
 <VirtualHost *:443>
     ServerName {{SERVER_NAME}}
-    # También ponemos el alias aquí por si el SSL permite acceso por IP
     ServerAlias {{SERVER_ALIAS}} www.{{SERVER_NAME}}
 
-    # REDIRECCIÓN INTERNA: Si el host de la petición es la IP, saltar al Dominio
-    # Esto ayuda a mantener el Same-Origin policy
+    # REDIRECCIÓN INTERNA || IP -> FQDN manteniendo Same-Origin policy
     RewriteEngine On
     RewriteCond %{HTTP_HOST} ^{{SERVER_ALIAS}}$ [NC]
     RewriteRule ^(.*)$ https://{{SERVER_NAME}}$1 [R=301,L]
 
     DocumentRoot /var/www/sentinel
 
-    # --- Cabeceras de Seguridad (OWASP / Hardening) ---
+    # --- Cabeceras de Seguridad ---
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "DENY"
     Header always set X-XSS-Protection "1; mode=block"
@@ -39,7 +37,7 @@
     SSLCertificateFile /etc/apache2/ssl/cert.pem
     SSLCertificateKeyFile /etc/apache2/ssl/private.key
 
-    # --- Version del protocolo ---
+    # --- Version de TLS ---
     # Solo TLS 1.3
     SSLProtocol -all +TLSv1.3
 
@@ -50,7 +48,7 @@
     # Forzar que el servidor decida el cifrado más seguro, no el cliente
     SSLHonorCipherOrder On
 
-    # --- Ofuscación para evitar enumeración ---
+    # --- Ofuscación evita enumeración ---
     ErrorDocument 403 "404 Not Found"
 
     # --- Configuración de Proxy ---
@@ -65,6 +63,24 @@
     ProxyPassReverse /wazuh-api/ https://wazuh.master:55000/
 
     # Proxy para Elasticsearch (Indexer)
+
+    <Location /eventosapi/>
+    # 1. Permitir al propio servidor (Docker network)
+       Require ip 172.20.0.0/24
+    
+    # Permitir a la red externa si fuera necesario (Wazuh/Indexer)
+       #Require ip 172.18.0.0/16 
+
+    # Opcional: Tu IP de administrador para pruebas
+    # Require ip TU_IP_PUBLICA
+
+    # Denegar todo lo demás
+       ErrorDocument 403 "404 Not Found" (Ofuscación)
+   </Location>
+
+   ProxyPass /eventosapi/ https://wazuh1.indexer:9200/
+   ProxyPassReverse /eventosapi/ https://wazuh1.indexer:9200/
+
     ProxyPass /eventosapi/ https://wazuh1.indexer:9200/
     ProxyPassReverse /eventosapi/ https://wazuh1.indexer:9200/
 
@@ -76,13 +92,13 @@
     ProxyPass /reportsapi/ http://reportsbackend:3001/
     ProxyPassReverse /reportsapi/ http://reportsbackend:3001/
     
-    # Proxy para la interfaz de la aplicación
-    #ProxyPass /app http://localhost:5000/
-    #ProxyPassReverse /app http://localhost:5000/
+    # Proxy para la interfaz de la aplicación (Cuando se haga)
+    #ProxyPass /app http://akuda-sentinel:5000/
+    #ProxyPassReverse /app http://akuda-sentinel:5000/
 
     # --- PROXYS DE DESARROLLO ---
-    # Se comentan para evitar la exposición directa de la API de Node.js y cumplir 
-    # con el principio de mínimos privilegios en producción.
+    # Se comentan para evitar la exposición directa de la API de Node.js 
+    # Cumpliendo con el principio de mínimos privilegios en producción.
     
     # ProxyPass /dev-backend http://localhost:3000/
     # ProxyPassReverse /dev-backend http://localhost:3000/
