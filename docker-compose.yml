@@ -5,10 +5,10 @@ services:
       context: .
       dockerfile: ./config/apache/Dockerfile.proxy
     container_name: akuda_apache_proxy
+    restart: unless-stopped
     depends_on:
       akuda-sentinel:
         condition: service_healthy
-    restart: unless-stopped
     networks:
       akudasentinel_default:
         ipv4_address: 172.20.0.10
@@ -17,7 +17,7 @@ services:
       - "443:443"
     volumes:
       - ./config/apache/sites-available:/etc/apache2/sites-available
-      - ./config/apache/ssl:/etc/apache2/ssl
+      - ./config/apache/ssl:/etc/apache2/ssl:ro
       - frontend_akuda:/var/www/sentinel:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/"]
@@ -30,17 +30,17 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: akuda-sentinel
-    hostname: akuda-sentinel
     restart: always
+    hostname: akuda-sentinel
+    networks:
+      akudasentinel_default:
+        ipv4_address: 172.20.0.5
+      multi-node_default:
     env_file:
       - .env.frontend
       - .env.backend
     volumes:
       - frontend_akuda:/var/www/sentinel
-    networks:
-      akudasentinel_default:
-        ipv4_address: 172.20.0.5
-      multi-node_default:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4000/"]
       interval: 30s
