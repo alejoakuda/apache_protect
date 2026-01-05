@@ -1,0 +1,75 @@
+services:
+
+  akuda-proxy:
+    build:
+      context: .
+      dockerfile: ./config/apache/Dockerfile.proxy
+    container_name: akuda_apache_proxy
+    restart: unless-stopped
+    networks:
+      akudasentinel_default:
+        ipv4_address: 172.20.0.10
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/apache/sites-available:/etc/apache2/sites-available
+      - ./config/apache/ssl/certs:/etc/apache2/ssl/certs
+      - ./config/apache/frontend-sentinel:/var/www/sentinel:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q.O", "-", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  akuda-sentinel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: akuda-sentinel
+    hostname: akuda-sentinel
+    restart: always
+    env_file:
+      - .env.frontend
+      - .env.backend
+#    ports:
+#      - "80:80"
+#      - "443:443"
+#      - "3000:3000"
+#      - "5173:5173"
+    volumes:
+      - ./config/apache/sites-available:/etc/apache2/sites-available
+      - ./config/apache/ssl/certs:/etc/apache2/ssl/certs
+    networks:
+      akudasentinel_default:
+        ipv4_address: 172.20.0.5
+      multi-node_default:
+
+      
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    restart: unless-stopped
+    networks:
+      - akudasentinel_default
+      - multi-node_default
+
+networks:
+  akudasentinel_default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+          gateway: 172.20.0.1
+  multi-node_default:
+    external: true
+
+volumes:
+  mongodb_data:

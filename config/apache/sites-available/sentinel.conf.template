@@ -1,0 +1,110 @@
+# =================================================
+# 1. Redirección de IP a Dominio (FQDN) y HTTP a HTTPS
+# =================================================
+<VirtualHost *:80>
+    ServerName {{SERVER_NAME}}
+    ServerAlias {{SERVER_ALIAS}} www.{{SERVER_NAME}}
+
+    # Redirige todo (IP o HTTP) al Dominio oficial en HTTPS
+    Redirect permanent / https://{{SERVER_NAME}}/
+</VirtualHost>
+
+# =================================================
+# 2. Host Virtual Principal (HTTPS)
+# =================================================
+<VirtualHost *:443>
+    ServerName {{SERVER_NAME}}
+    # También ponemos el alias aquí por si el SSL permite acceso por IP
+    ServerAlias {{SERVER_ALIAS}} www.{{SERVER_NAME}}
+
+    # REDIRECCIÓN INTERNA: Si el host de la petición es la IP, saltar al Dominio
+    # Esto ayuda a mantener el Same-Origin policy
+    RewriteEngine On
+    RewriteCond %{HTTP_HOST} ^{{SERVER_ALIAS}}$ [NC]
+    RewriteRule ^(.*)$ https://{{SERVER_NAME}}$1 [R=301,L]
+
+    DocumentRoot /var/www/sentinel
+
+    # --- Cabeceras de Seguridad (OWASP / Hardening) ---
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; object-src 'none'; style-src 'self';"
+    Header always set Referrer-Policy "no-referrer-when-downgrade"
+    Header always set Permissions-Policy "geolocation=(self), microphone=(), camera=()"
+
+    # --- Configuración SSL ---
+    SSLEngine on
+    SSLCertificateFile /etc/apache2/ssl/cert.pem
+    SSLCertificateKeyFile /etc/apache2/ssl/private.key
+
+    # --- Version del protocolo ---
+    # Solo TLS 1.3
+    SSLProtocol -all +TLSv1.3
+
+    # Compatibilidad TLS 1.2 + 1.3 - Descomentar si hay errores de conexión.
+    # SSLProtocol all -SSLv3 -TLSv1 -TLSv1.1
+    # SSLCipherSuite ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384
+    
+    # Forzar que el servidor decida el cifrado más seguro, no el cliente
+    SSLHonorCipherOrder On
+
+    # --- Ofuscación para evitar enumeración ---
+    ErrorDocument 403 "404 Not Found"
+
+    # --- Configuración de Proxy ---
+    SSLProxyEngine On
+    SSLProxyVerify none
+    SSLProxyCheckPeerCN off
+    SSLProxyCheckPeerName off
+    ProxyPreserveHost On
+
+    # Proxy para la API de Wazuh (Master)
+    ProxyPass /wazuh-api/ https://wazuh.master:55000/
+    ProxyPassReverse /wazuh-api/ https://wazuh.master:55000/
+
+    # Proxy para Elasticsearch (Indexer)
+    ProxyPass /eventosapi/ https://wazuh1.indexer:9200/
+    ProxyPassReverse /eventosapi/ https://wazuh1.indexer:9200/
+
+    # Proxy para el Backend API (Corregido a puerto 4000)
+    ProxyPass /api/ http://localhost:4000/
+    ProxyPassReverse /api/ http://localhost:4000/
+
+    # Proxy para el Backend de Reportes
+    ProxyPass /reportsapi/ http://reportsbackend:3001/
+    ProxyPassReverse /reportsapi/ http://reportsbackend:3001/
+    
+    # Proxy para la interfaz de la aplicación
+    #ProxyPass /app http://localhost:5000/
+    #ProxyPassReverse /app http://localhost:5000/
+
+    # --- PROXYS DE DESARROLLO ---
+    # Se comentan para evitar la exposición directa de la API de Node.js y cumplir 
+    # con el principio de mínimos privilegios en producción.
+    
+    # ProxyPass /dev-backend http://localhost:3000/
+    # ProxyPassReverse /dev-backend http://localhost:3000/
+    
+    # ProxyPass /dev-frontend http://localhost:5173/
+    # ProxyPassReverse /dev-frontend http://localhost:5173/
+
+    # --- Configuración de Directorio y SPA Routing ---
+    <Directory /var/www/sentinel>
+        Options -Indexes +FollowSymLinks
+        AllowOverride None
+        Require all granted
+
+        RewriteEngine On
+        RewriteBase /
+        RewriteRule ^index\.html$ - [L]
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule . /index.html [L]
+    </Directory>
+
+    # --- Logs de Auditoría ---
+    ErrorLog ${APACHE_LOG_DIR}/sentinel_error.log
+    CustomLog ${APACHE_LOG_DIR}/sentinel_access.log combined
+</VirtualHost>
