@@ -299,7 +299,7 @@ if ! is_step_completed "DOMAIN_CONFIGURED"; then
     
     # 1. Solicitar FQDN (Para el ServerName y Same-Origin)
     print_info "Introduce el DOMINIO oficial (FQDN):"
-    read -p "Dominio (ej. sentinel.empresa.com): " SERVER_NAME
+    read -p "Dominio (ej. sentinel.empresa.local): " SERVER_NAME
     while [ -z "$SERVER_NAME" ]; do
         print_error "El dominio no puede estar vacío"
         read -p "Dominio: " SERVER_NAME
@@ -346,13 +346,14 @@ echo ""
 print_info "Verificando certificados SSL..."
 SSL_ERRORS=0
 
-if [ ! -f "config/apache/ssl/certs/cert.pem" ]; then
-    print_error "Falta el archivo: config/apache/ssl/certs/cert.pem"
+# Ruta unificada: config/apache/ssl/
+if [ ! -f "config/apache/ssl/cert.pem" ]; then
+    print_error "Falta el archivo: config/apache/ssl/cert.pem"
     SSL_ERRORS=$((SSL_ERRORS + 1))
 fi
 
-if [ ! -f "config/apache/ssl/certs/private.key" ]; then
-    print_error "Falta el archivo: config/apache/ssl/certs/private.key"
+if [ ! -f "config/apache/ssl/private.key" ]; then
+    print_error "Falta el archivo: config/apache/ssl/private.key"
     SSL_ERRORS=$((SSL_ERRORS + 1))
 fi
 
@@ -362,8 +363,8 @@ if [ $SSL_ERRORS -gt 0 ]; then
     print_error "  FALTAN CERTIFICADOS SSL REQUERIDOS"
     print_error "═══════════════════════════════════════════════════════════"
     echo ""
-    print_info "Por favor, coloca los siguientes archivos en la carpeta:"
-    echo -e "  ${YELLOW}config/apache/ssl/certs/${NC}"
+    print_info "Por favor, coloca los archivos directamente en la carpeta:"
+    echo -e "  ${YELLOW}config/apache/ssl/${NC}" # Ruta limpia
     echo ""
     echo -e "  ${GREEN}• cert.pem${NC}        - Certificado SSL público"
     echo -e "  ${GREEN}• private.key${NC}     - Clave privada SSL"
@@ -372,7 +373,6 @@ if [ $SSL_ERRORS -gt 0 ]; then
 fi
 
 print_success "✅ Todos los certificados SSL requeridos están presentes"
-
 
 # Paso 5: Construir y levantar contenedores
 echo ""

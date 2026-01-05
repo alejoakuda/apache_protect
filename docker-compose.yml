@@ -17,10 +17,10 @@ services:
       - "443:443"
     volumes:
       - ./config/apache/sites-available:/etc/apache2/sites-available
-      - ./config/apache/ssl/certs:/etc/apache2/ssl/certs
+      - ./config/apache/ssl:/etc/apache2/ssl
       - frontend_akuda:/var/www/sentinel:ro
     healthcheck:
-      test: ["CMD", "wget", "-q.O", "-", "http://localhost:80/"]
+      test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s
       timeout: 10s
       retries: 3
